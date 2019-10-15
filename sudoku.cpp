@@ -5,36 +5,35 @@
 using namespace std;
 
 
-
+//存储数独的初始数据
+//0代表未知，等待填写
 int dat[9][9] =
 {
-{0,2,0,0,9,0,8,0,6},
-{0,0,1,0,0,0,2,0,0},
-{5,0,0,0,1,0,0,3,0},
-{0,0,3,0,0,1,0,2,0},
-{2,5,0,0,6,0,9,0,0},
-{0,0,7,0,0,8,0,5,0},
-{6,0,0,0,5,0,0,9,0},
-{0,0,5,0,0,0,3,0,0},
-{0,3,0,0,7,0,5,0,4},
+{0,0,3,0,7,0,0,0,0},
+{0,1,0,9,0,6,2,3,0},
+{0,5,0,1,3,0,0,0,6},
+{0,6,0,0,0,0,1,8,0},
+{9,0,1,0,0,0,5,0,4},
+{0,8,2,0,0,0,0,7,0},
+{7,0,0,0,8,4,0,5,0},
+{0,4,8,5,0,2,0,6,0},
+{0,0,0,0,1,0,8,0,0},
 };
 
-//bool = 1 该行或者列或者区域已经存在哪个数字
+//第n位数字为1 该行或者列或者区域已经存在数字n+1
 int bool_lin[9];
 int bool_col[9];
 int bool_blo[9];
 
 typedef struct node
 {
-    int i=-1,j=-1;
-    int ans = 0;//默认为0，表示没有答案
-    int bool_pro;//bool = 1 该单元格可能存在哪个数字
+    int i=-1,j=-1;  //保存第几行第几列
+    int ans = 0;    //默认为0，表示没有答案
+    int bool_pro;   //第n位为1，代表该单元格可能是n-1
     int num_pro = -1;//该单元格有几个可能的数字,-1代表没有进行可能性检测
-//    friend bool operator<(node a,node b)
-//    {
-//        return a.num_pro > b.num_pro;
-//    }
 }build_grid;
+
+//在运算时存储的中间数据
 build_grid grid[9][9];
 struct pcmp
 {
@@ -43,18 +42,43 @@ struct pcmp
         return a->num_pro > b->num_pro;
     }
 };
+
+//优先队列，按照地址指向的node节点的可能性个数从小到大进行排序
 priority_queue<node *,vector<node*>,pcmp > grid_queue;
 
+//将初始数据转换为三个数组
 void input_date(int dat[9][9],int i,int k);
+
+//将数组按照二进制输出，检查数据是否有逻辑错误
+//第n行为数组n的数据
 void lin_check(void);
 void col_check(void);
 void blo_check(void);
+
+//遍历，
+//检测单元是否有答案，
+//没有答案的检查可能性，
+//如果可能性为1，将其纳为答案
+//如果可能性不为1，将其押入队列
 void grid_update(void);
+
+//输出数独的答案
 void ans_check(void);
+
+//在数字num的第place-1位写1
 void write_bit(int *num,int place);
+
+//返回数字num从第0-8位中，有几个1
 int check_num_bit(int num);
+
+//返回n，数字num在第0-8位中第n-1位为1
 int check_bit_num(int num);
+
+//检查num第n-1位的数值
 bool check_bit(int num,int place);
+
+//返回第i行,第j列的数据在第几个区域
+//i，j,区域号从0开始计数
 int get_num_block(int i, int j);
 
 
@@ -77,6 +101,14 @@ int main()
     //blo_check();
 
     int num_repeat = 0;
+
+    //用于检测是否成功执行，如果进入死循环则退出
+    int check_num = 0;
+    int pre_check_num = 0;
+    for(int i = 0;i< 9;i++)
+    {
+        check_num += bool_lin[i];
+    }
     do
     {
         num_repeat++;
@@ -92,6 +124,17 @@ int main()
             {
                 break;
             }
+        }
+        pre_check_num = check_num;
+        check_num = 0;
+        for(int i = 0;i < 9 ;i++)
+        {
+            check_num += bool_lin[i];
+        }
+        if(pre_check_num == check_num )
+        {
+            printf("error\n");
+            break;
         }
     }while(!grid_queue.empty());
     ans_check();
@@ -175,12 +218,19 @@ void grid_update(void)
                 if(tmp.num_pro == 1)
                 {
                     tmp.ans = check_bit_num(tmp.bool_pro);
+                    //查询到未知单元格的答案，更新三个数组
                     write_bit(&bool_blo[get_num_block(i,j)],tmp.ans);
                     write_bit(&bool_lin[i],tmp.ans);
                     write_bit(&bool_col[j],tmp.ans);
+                    grid[i][j] = tmp;
                 }
-                grid[i][j] = tmp;
-                grid_queue.push(&grid[i][j]);
+                else
+                {
+                    grid[i][j] = tmp;
+                    grid_queue.push(&grid[i][j]);
+                }
+
+
             }
 //            for(int k = 1 ; k <= 9;k++)
 //            {
